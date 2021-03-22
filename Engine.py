@@ -1,10 +1,6 @@
 from Components import GameObject
 import argparse
-
-# class Game():
-#     def __init__(self, first_level) -> None:
-#         self.controls = {}
-#         self.
+import asyncio
 
 class PrettySerializable:
     """To be inherited by classes that will make use of config data serialized in our "human readable way"
@@ -25,6 +21,16 @@ class PrettySerializable:
                     yield line.strip()
 
     @staticmethod
+    def ParseCommandBindings(lines, module):
+        command_fx_dict = {}
+        for binding in lines:
+            command, reference = binding.split()
+            cls = getattr(module, reference)
+            pair = FxParserPair(cls.fromconfig, cls.generate_parser)
+            command_fx_dict[command] = pair
+        return command_fx_dict
+
+    @staticmethod
     def ReadIgnore(file_path, marker="#", sections=[""]):
         """Return lines of all OTHER sections as a generator.
         If no sections provided, returns all lines."""
@@ -42,9 +48,30 @@ class PrettySerializable:
                     ignoring = False
                     continue
 
+class Game(PrettySerializable):
+    def __init__(self, first_level, controls={}) -> None:
+        self.controls = controls
+        self.active_level = first_level
+        results = asyncio.get_event_loop().run_until_complete(first_level.BeginPlay())
+
+    @classmethod
+    def fromconfig(self, full_file_path):
+        import GameObjects
+        lines = Game.FindSection(full_file_path, section="#Controls")
+        controls = Game.ParseCommandBindings(lines, GameObjects)
+        level = Level.LoadLevel(full_file_path)
+        return Game(level, controls)
+
+    def update(self):
+        pass
+
 class Level(PrettySerializable):
     def __init__(self, LevelObjects={}):
         self.LevelObjects = LevelObjects
+
+    async def BeginPlay(self):
+        functions = [obj.BeginPlay(self) for obj in self.LevelObjects.values()]
+        return await asyncio.gather(*functions) 
 
     @classmethod
     def LoadLevel(self, full_file_path, command_fx_dict={}, Objects={}, exceptions=False, separator = " "):
@@ -52,14 +79,9 @@ class Level(PrettySerializable):
         Objects : Tries to migrate existing objects into the new level together with the level's objects.
         Exceptions : Show exception if command parsing fails. Does NOT prevent exceptions when instantiating
         fails."""
-        import GameObjects    
+        import GameObjects
         bindings = Level.FindSection(full_file_path, section="#CommandBindings")
-        for binding in bindings:
-            command, reference = binding.split()
-            cls = getattr(GameObjects, reference)
-            pair = FxParserPair(cls.fromconfig, cls.generate_parser)
-            command_fx_dict[command] = pair
-        
+        command_fx_dict = Level.ParseCommandBindings(bindings, GameObjects)        
         handler = CommandHandler(command_fx_dict, exceptions=exceptions, separator=separator)
         lines = Level.ReadIgnore(full_file_path, sections=["#CommandBindings"])
         LevelObjects = {item.getname() : item 
@@ -81,9 +103,9 @@ class CommandHandler:
         self.exceptions = exceptions
     
     def parse(self, command_string):
-        args = command_string.split(self.separator)
+        args = command_string.strip().split(self.separator)
         try:
-            return self.bindings[args[0]]([arg.strip() for arg in args[1:]])
+            return self.bindings[args[0]](args[1:])
         except KeyError as error:
             if self.error_msg:
                 print(self.error_msg)
@@ -103,5 +125,8 @@ class FxParserPair:
 
     __call__ = parse
 
-# level = Level.LoadLevel("level.txt")
-# print(level)
+# lvl = Level.LoadLevel("level.txt")
+# print(lvl)
+
+game = Game.fromconfig("level.txt")
+print(game)
