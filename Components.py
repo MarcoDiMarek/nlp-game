@@ -8,6 +8,13 @@ class GameObject:
     def getname(self) -> str:
         return self.name or str(id(self))
 
+    async def BeginPlay(self, level) -> bool:
+        """Prepare object right before the first run of the Update loop.
+        Now objects know they can access each other since all have been loaded."""
+        self.level = level
+        print(f"{self.name} initialized")
+        return True
+
     @staticmethod
     @abstractmethod
     def generate_parser():
