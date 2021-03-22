@@ -1,0 +1,20 @@
+#CommandBindings
+room Room
+door Door
+item Item
+#Rooms
+room Hall
+room Kitchen
+room Storage
+room Bedroom
+#Doors
+door N-S OPEN Hall Bedroom
+door N-S CLOSED Storage Kitchen
+door E-W LOCKED Hall Storage --keys key
+door E-W OPEN Bedroom Kitchen
+#Items
+item box Storage STATIONARY
+item hour_glass Kitchen MOVE
+item key Bedroom USE --action unlock
+#Start position
+start Hall
