@@ -103,5 +103,5 @@ class FxParserPair:
 
     __call__ = parse
 
-level = Level.LoadLevel("level.txt")
-print(level)
+# level = Level.LoadLevel("level.txt")
+# print(level)
