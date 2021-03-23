@@ -52,7 +52,11 @@ class Game(PrettySerializable):
     def __init__(self, first_level, controls={}) -> None:
         self.controls = controls
         self.active_level = first_level
-        results = asyncio.get_event_loop().run_until_complete(first_level.BeginPlay())
+        success = self.BeginPlay()
+        print(success)
+        # loop = asyncio.get_event_loop()
+        # results = loop.run_until_complete(asyncio.wait([(loop.run_in_executor(None, obj.BeginPlay, first_level)) for obj in first_level.LevelObjects.values()]))
+        # print(results)
 
     @classmethod
     def fromconfig(self, full_file_path):
@@ -61,6 +65,14 @@ class Game(PrettySerializable):
         controls = Game.ParseCommandBindings(lines, GameObjects)
         level = Level.LoadLevel(full_file_path)
         return Game(level, controls)
+
+    def BeginPlay(self) -> bool:
+        loop = asyncio.get_event_loop()
+        level = self.active_level
+        functions = [(loop.run_in_executor(None, obj.BeginPlay, level)) 
+                    for obj in level.LevelObjects.values()]
+        results = loop.run_until_complete(asyncio.gather(*functions))
+        return False not in results
 
     def update(self):
         pass
@@ -129,4 +141,4 @@ class FxParserPair:
 # print(lvl)
 
 game = Game.fromconfig("level.txt")
-print(game)
+input("press enter to quit")
