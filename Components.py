@@ -56,7 +56,3 @@ class BoxCollider(Collider):
     def __str__(self) -> str:
         boundaries = zip(("Top Left", "Top Right", "Bottom Left", "Bottom Right"), self.boundaries)
         return pprint.pformat(list(boundaries))
-
-class Level():
-    def __init__(self, level_objects=None) -> None:
-        self.level_objects = level_objects
