@@ -1,5 +1,7 @@
+import asyncio
 import pprint
 from abc import abstractmethod
+import random
 
 class GameObject:
     def __init__(self, name=None) -> None:
@@ -8,11 +10,12 @@ class GameObject:
     def getname(self) -> str:
         return self.name or str(id(self))
 
-    async def BeginPlay(self, level) -> bool:
+    def BeginPlay(self, level) -> bool:
         """Prepare object right before the first run of the Update loop.
         Now objects know they can access each other since all have been loaded."""
         self.level = level
-        print(f"{self.name} initialized")
+        print(f"{self.name} started")
+        print(f"FINISHED {self.name}")
         return True
 
     @staticmethod
