@@ -54,9 +54,6 @@ class Game(PrettySerializable):
         self.active_level = first_level
         success = self.BeginPlay()
         print(success)
-        # loop = asyncio.get_event_loop()
-        # results = loop.run_until_complete(asyncio.wait([(loop.run_in_executor(None, obj.BeginPlay, first_level)) for obj in first_level.LevelObjects.values()]))
-        # print(results)
 
     @classmethod
     def fromconfig(self, full_file_path):
@@ -80,10 +77,6 @@ class Game(PrettySerializable):
 class Level(PrettySerializable):
     def __init__(self, LevelObjects={}):
         self.LevelObjects = LevelObjects
-
-    async def BeginPlay(self):
-        functions = [obj.BeginPlay(self) for obj in self.LevelObjects.values()]
-        return await asyncio.gather(*functions) 
 
     @classmethod
     def LoadLevel(self, full_file_path, command_fx_dict={}, Objects={}, exceptions=False, separator = " "):
@@ -136,9 +129,6 @@ class FxParserPair:
         return self.handler(args, self.parser)
 
     __call__ = parse
-
-# lvl = Level.LoadLevel("level.txt")
-# print(lvl)
 
 game = Game.fromconfig("level.txt")
 input("press enter to quit")
