@@ -72,7 +72,7 @@ class Game(PrettySerializable):
         functions = [(loop.run_in_executor(None, obj.BeginPlay, level)) 
                     for obj in level.LevelObjects.values()]
         results = loop.run_until_complete(asyncio.gather(*functions))
-        return False not in results
+        return all(results)
 
     def update(self):
         pass
