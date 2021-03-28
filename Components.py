@@ -1,3 +1,4 @@
+from Engine import Game
 import asyncio
 import pprint
 from abc import abstractmethod
@@ -26,7 +27,38 @@ class GameObject:
     @classmethod
     def fromconfig(self, args, parser) -> None:
         return None
-    
+
+class Controller(GameObject):
+    """A class to be inherited by AI controllers or Player Controllers."""
+    def __init__(self, name, to_possess=[]) -> None:
+        """Controller name, objects to possess."""
+        super().__init__(name)
+        self.controlled = set(to_possess) # allow both a list and a single obj
+        self.possess(self.controlled)
+
+    def possess(self, to_possess) -> bool:
+        """An element / a list thereof to possess."""
+        gobjs = set(to_possess)
+        for gobj in gobjs:
+            try:
+                old_controller = gobj.controller
+                if old_controller:
+                    old_controller.dispossess(old_controller)
+                gobj.controller = self
+                yield True
+            except AttributeError:
+                yield False
+
+    def dispossess(self, to_dispossess) -> bool:
+        """An element / a list thereof to dispossess."""
+        gobjs = set(to_dispossess)
+        for gobj in gobjs:
+            if gobjs in self.controlled:
+                self.controlled.remove(gobj)
+                yield True
+            else:
+                yield False
+
 class Collider:
     """Template class to be inherited by specific types of colliders.
        
@@ -59,3 +91,4 @@ class BoxCollider(Collider):
     def __str__(self) -> str:
         boundaries = zip(("Top Left", "Top Right", "Bottom Left", "Bottom Right"), self.boundaries)
         return pprint.pformat(list(boundaries))
+
