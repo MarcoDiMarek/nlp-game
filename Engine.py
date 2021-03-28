@@ -64,6 +64,9 @@ class Game(PrettySerializable):
         return Game(level, controls)
 
     def BeginPlay(self) -> bool:
+        """Asynchronously call objects that may need to perform
+        some set-up before the game loop starts running.
+        True if set-up succeeds in all objects."""
         loop = asyncio.get_event_loop()
         level = self.active_level
         functions = [(loop.run_in_executor(None, obj.BeginPlay, level)) 
