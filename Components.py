@@ -1,8 +1,8 @@
-from Engine import Game
 import asyncio
 import pprint
 from abc import abstractmethod
 import random
+from typing import Generator
 
 class GameObject:
     def __init__(self, name=None) -> None:
@@ -30,34 +30,37 @@ class GameObject:
 
 class Controller(GameObject):
     """A class to be inherited by AI controllers or Player Controllers."""
-    def __init__(self, name, to_possess=[]) -> None:
-        """Controller name, objects to possess."""
+    def __init__(self, name, *to_possess) -> None:
+        """Controller name, object(s) to possess."""
         super().__init__(name)
-        self.controlled = set(to_possess) # allow both a list and a single obj
-        self.possess(self.controlled)
+        self.controlled = set(to_possess)
+        all(self.possess(self.controlled))
 
-    def possess(self, to_possess) -> bool:
-        """An element / a list thereof to possess."""
-        gobjs = set(to_possess)
-        for gobj in gobjs:
+    def possess(self, *to_possess):
+        """An object / a list thereof to possess.
+        Yield True on successs."""
+        for gobj in to_possess:
             try:
                 old_controller = gobj.controller
                 if old_controller:
                     old_controller.dispossess(old_controller)
                 gobj.controller = self
+                self.controlled.add(gobj)
                 yield True
             except AttributeError:
                 yield False
+        yield False
 
-    def dispossess(self, to_dispossess) -> bool:
-        """An element / a list thereof to dispossess."""
-        gobjs = set(to_dispossess)
-        for gobj in gobjs:
-            if gobjs in self.controlled:
+    def dispossess(self, *to_dispossess):
+        """An object / a list thereof to dispossess."""
+        for gobj in to_dispossess:
+            if gobj in self.controlled:
                 self.controlled.remove(gobj)
+                gobj.controller = None
                 yield True
             else:
                 yield False
+        yield False
 
 class Collider:
     """Template class to be inherited by specific types of colliders.
@@ -92,3 +95,16 @@ class BoxCollider(Collider):
         boundaries = zip(("Top Left", "Top Right", "Bottom Left", "Bottom Right"), self.boundaries)
         return pprint.pformat(list(boundaries))
 
+##EXAMPLE
+# class someobj():
+#     def __init__(self, controller=None) -> None:
+#         self.controller=controller
+#         if self.controller:
+#             controller.possess(self)
+    
+# real_obj = someobj()
+# controller = Controller("Player Controller")
+# to_possess = [real_obj, "a"]
+# all(controller.possess(*to_possess))
+# failed = [gobj[0] for gobj in zip(to_possess, controller.possess(*to_possess)) if not gobj[1]]
+# print(controller)
