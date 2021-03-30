@@ -62,6 +62,10 @@ class Controller(GameObject):
                 yield False
         yield False
 
+class PlayerController(Controller):
+    def __init__(self, name, *to_possess, controls_functions={}) -> None:
+        super().__init__(name, *to_possess)
+
 class Collider:
     """Template class to be inherited by specific types of colliders.
        
