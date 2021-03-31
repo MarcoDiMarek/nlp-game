@@ -2,6 +2,7 @@ import asyncio
 import pprint
 from abc import abstractmethod
 import random
+from sys import modules
 from typing import Generator
 
 class GameObject:
@@ -10,6 +11,10 @@ class GameObject:
 
     def getname(self) -> str:
         return self.name or str(id(self))
+
+    def rename(self, name):
+        self.name = name
+        # call an event to notify subscribers (if implemented)
 
     def BeginPlay(self, level) -> bool:
         """Prepare object right before the first run of the Update loop.
@@ -34,7 +39,7 @@ class Controller(GameObject):
         """Controller name, object(s) to possess."""
         super().__init__(name)
         self.controlled = set(to_possess)
-        all(self.possess(self.controlled))
+        all(self.possess(*self.controlled))
 
     def possess(self, *to_possess):
         """An object / a list thereof to possess.
@@ -63,52 +68,44 @@ class Controller(GameObject):
         yield False
 
 class PlayerController(Controller):
-    def __init__(self, name, *to_possess, controls_functions={}) -> None:
+    def __init__(self, name, controls_functions={}, *to_possess) -> None:
         super().__init__(name, *to_possess)
+        self.controls_functions = controls_functions
 
-class Collider:
-    """Template class to be inherited by specific types of colliders.
-       
-       Game objects that have their own colliders can collide with each other.
-       
-       Relative Locaion to Object = (0,0) center (pivot) of the object"""
+    @classmethod
+    def fromstring(self, name, controls_functions, *to_possess):
+        ctrl_fx = {control:getattr(self, fx_name) for control, fx_name in controls_functions.items()}
+        return PlayerController(name, ctrl_fx, *to_possess)
 
-    def __init__(self, RelativeLocToObject, active=False):
-        self.location = (0,0) # 0,0 center of the object
-        self.active = active
-    pass
+    def go(self):
+        pass
+    
+    def take(self):
+        pass
 
-class BoxCollider(Collider):
-    def __init__(self, RelativeLocToObject, RelativeSizeToObject):
-        super().__init__(self, RelativeLocToObject)
-        self.boundaries = (
-                        # Top Left
-                        (RelativeLocToObject[0]-RelativeSizeToObject[0]/2, 
-                        RelativeLocToObject[1]-RelativeSizeToObject[1]/2),
-                        # Top Rigth
-                        (RelativeLocToObject[0]+RelativeSizeToObject[0]/2, 
-                        RelativeLocToObject[1]-RelativeSizeToObject[1]/2),
-                        # Bottom Left
-                        (RelativeLocToObject[0]-RelativeSizeToObject[0]/2, 
-                        RelativeLocToObject[1]+RelativeSizeToObject[1]/2),
-                        # Bottom Right
-                        (RelativeLocToObject[0]+RelativeSizeToObject[0]/2, 
-                        RelativeLocToObject[1]+RelativeSizeToObject[1]/2)
-                    )
-    def __str__(self) -> str:
-        boundaries = zip(("Top Left", "Top Right", "Bottom Left", "Bottom Right"), self.boundaries)
-        return pprint.pformat(list(boundaries))
+    def release(self):
+        pass
 
-##EXAMPLE
+    def show(self):
+        pass
+
+    def open(self):
+        pass
+
+    def commands(self):
+        pass
+
+    def holding(self):
+        pass
+
+    def quit(self):
+        pass
+
+# #EXAMPLE
 # class someobj():
 #     def __init__(self, controller=None) -> None:
 #         self.controller=controller
 #         if self.controller:
 #             controller.possess(self)
-    
-# real_obj = someobj()
-# controller = Controller("Player Controller")
-# to_possess = [real_obj, "a"]
-# all(controller.possess(*to_possess))
-# failed = [gobj[0] for gobj in zip(to_possess, controller.possess(*to_possess)) if not gobj[1]]
-# print(controller)
+# pl = someobj()
+# pc = PlayerController.fromstring("Nice controller", {"m":"move"}, pl)
