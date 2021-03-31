@@ -6,8 +6,10 @@ from sys import modules
 from typing import Generator
 
 class GameObject:
-    def __init__(self, name=None) -> None:
+    gameInstance = None
+    def __init__(self, name=None, level=None) -> None:
         self.name = name
+        self.level = level
 
     def getname(self) -> str:
         return self.name or str(id(self))
