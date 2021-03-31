@@ -58,6 +58,7 @@ class Game(PrettySerializable):
     @classmethod
     def fromconfig(self, full_file_path):
         import GameObjects
+        GameObject.gameInstance = self
         lines = Game.FindSection(full_file_path, section="#Controls")
         controls = Game.ParseCommandBindings(lines, GameObjects)
         level = Level.LoadLevel(full_file_path)
@@ -97,6 +98,10 @@ class Level(PrettySerializable):
         for line in lines:
             item = handler.parse(line)
             if item is not None:
+                try:
+                    item.level = self
+                except AttributeError:
+                    pass
                 group = item.__class__.__name__
                 if group in LevelObjects:
                     LevelObjects[group][item.getname()] = item
