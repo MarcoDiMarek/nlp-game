@@ -69,8 +69,9 @@ class Game(PrettySerializable):
         True if set-up succeeds in all objects."""
         loop = asyncio.get_event_loop()
         level = self.active_level
-        functions = [(loop.run_in_executor(None, obj.BeginPlay, level)) 
-                    for obj in level.LevelObjects.values()]
+        functions = [(loop.run_in_executor(None, obj.BeginPlay, level))
+                    for group in level.LevelObjects.values()
+                    for obj in group.values()]
         results = loop.run_until_complete(asyncio.gather(*functions))
         return all(results)
 
@@ -82,7 +83,7 @@ class Level(PrettySerializable):
         self.LevelObjects = LevelObjects
 
     @classmethod
-    def LoadLevel(self, full_file_path, command_fx_dict={}, Objects={}, exceptions=False, separator = " "):
+    def LoadLevel(self, full_file_path, command_fx_dict={}, exceptions=False, separator = " "):
         """command_fx_dict : Additional command bindings.
         Objects : Tries to migrate existing objects into the new level together with the level's objects.
         Exceptions : Show exception if command parsing fails. Does NOT prevent exceptions when instantiating
@@ -92,9 +93,17 @@ class Level(PrettySerializable):
         command_fx_dict = Level.ParseCommandBindings(bindings, GameObjects)        
         handler = CommandHandler(command_fx_dict, exceptions=exceptions, separator=separator)
         lines = Level.ReadIgnore(full_file_path, sections=["#CommandBindings"])
-        LevelObjects = {item.getname() : item 
-                        for item in (handler.parse(line) for line in lines) if item is not None}
-        return Level({**Objects, **LevelObjects})
+        LevelObjects = dict()
+        for line in lines:
+            item = handler.parse(line)
+            if item is not None:
+                group = item.__class__.__name__
+                if group in LevelObjects:
+                    LevelObjects[group][item.getname()] = item
+                else:
+                    LevelObjects[group] = {item.getname() : item}
+        return Level(LevelObjects)
+
 
 class CommandHandler:
     def __init__(self, command_fx_pairs, error_msg="", exceptions=False, separator = " ") -> None:
