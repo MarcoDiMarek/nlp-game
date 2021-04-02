@@ -3,8 +3,9 @@ import argparse
 import enum
 
 class Room(GameObject):
-    def __init__(self, name) -> None:
+    def __init__(self, name, doors=None) -> None:
         super().__init__(name)
+        self.doors = doors or {}
     
     @staticmethod
     def generate_parser():
@@ -13,7 +14,7 @@ class Room(GameObject):
         return parser
 
     @classmethod
-    def fromconfig(self, args, parser):
+    def fromconfig(self, args, parser, level_objs):
         values = parser.parse_args(args)
         return Room(values.name)
 
@@ -23,11 +24,11 @@ class Door(GameObject):
         CLOSED = 2
         LOCKED = 3
 
-    def __init__(self, name, directions, state, rooms, keys=None) -> None:
+    def __init__(self, name, state, keys=None) -> None:
         super().__init__(name)
-        self.directions = directions
+        # self.directions = directions
         self.state = state
-        self.rooms = rooms
+        # self.rooms = rooms
         self.keys = keys
 
     @staticmethod
@@ -43,12 +44,14 @@ class Door(GameObject):
         return parser
 
     @classmethod
-    def fromconfig(self, args, parser):
+    def fromconfig(self, args, parser, level_objs):
         v = parser.parse_args(args)
         directions = v.directions.split("-")
         rooms = v.room1, v.room2
         v.name = v.name or f"Door {'_'.join(rooms)}"
-        return Door(v.name, directions, Door.DoorState[v.state], rooms, v.keys)
+        for index, room in enumerate(rooms):
+            level_objs[Room.__name__][room].doors[directions[index]] = self
+        return Door(v.name, Door.DoorState[v.state], v.keys)
 
 class Item(GameObject):
     def __init__(self, name, location, stationary, action) -> None:
@@ -67,7 +70,7 @@ class Item(GameObject):
         return parser
 
     @classmethod
-    def fromconfig(self, args, parser):
+    def fromconfig(self, args, parser, level_objs):
         v = parser.parse_args(args)
         v.type = v.type.upper() == "STATIONARY"
         return Item(v.name, v.room, v.type, v.action)
