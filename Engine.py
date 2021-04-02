@@ -48,6 +48,12 @@ class PrettySerializable:
                     ignoring = False
                     continue
 
+class PlayerPlaceholder():
+    def __init__(self, controller=None) -> None:
+        self.controller=controller
+        if self.controller:
+            controller.possess(self)
+
 class Game(PrettySerializable):
     def __init__(self, first_level, controls={}) -> None:
         self.controls = controls
@@ -58,11 +64,14 @@ class Game(PrettySerializable):
     @classmethod
     def fromconfig(self, full_file_path):
         import GameObjects
+        from Components import PlayerController
         GameObject.gameInstance = self
-        lines = Game.FindSection(full_file_path, section="#Controls")
-        controls = Game.ParseCommandBindings(lines, GameObjects)
+        controls = dict([line.split() for line 
+                   in Game.FindSection(full_file_path, section="#Controls")])
+        player = PlayerPlaceholder()
+        controller = PlayerController.fromstring("default_controller", player)
         level = Level.LoadLevel(full_file_path)
-        return Game(level, controls)
+        return Game(level, controls=None)
 
     def BeginPlay(self) -> bool:
         """Asynchronously call objects that may need to perform
