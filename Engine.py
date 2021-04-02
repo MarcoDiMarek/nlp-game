@@ -1,6 +1,6 @@
 from Components import GameObject
-import argparse
 import asyncio
+import sys
 
 class PrettySerializable:
     """To be inherited by classes that will make use of config data serialized in our "human readable way"
@@ -48,30 +48,23 @@ class PrettySerializable:
                     ignoring = False
                     continue
 
-class PlayerPlaceholder():
-    def __init__(self, controller=None) -> None:
-        self.controller=controller
-        if self.controller:
-            controller.possess(self)
-
 class Game(PrettySerializable):
-    def __init__(self, first_level, controls={}) -> None:
-        self.controls = controls
+    def __init__(self, first_level, controller) -> None:
         self.active_level = first_level
-        success = self.BeginPlay()
-        print(success)
+        self.active_controller = controller
+        self.BeginPlay()
+        self.update()
 
     @classmethod
     def fromconfig(self, full_file_path):
         import GameObjects
-        from Components import PlayerController
+        from Components import PlayerController, Player
         GameObject.gameInstance = self
         controls = dict([line.split() for line 
                    in Game.FindSection(full_file_path, section="#Controls")])
-        player = PlayerPlaceholder()
-        controller = PlayerController.fromstring("default_controller", player)
+        controller = PlayerController.fromstring("default_controller", controls, Player())
         level = Level.LoadLevel(full_file_path)
-        return Game(level, controls=None)
+        return Game(level, controller)
 
     def BeginPlay(self) -> bool:
         """Asynchronously call objects that may need to perform
@@ -86,7 +79,13 @@ class Game(PrettySerializable):
         return all(results)
 
     def update(self):
-        pass
+        while True:
+            command = input()
+            if command.lower() == "quit":
+                break
+            self.active_controller.update(command.split())
+            # Update rendering etc. (if implemented)
+
 
 class Level(PrettySerializable):
     def __init__(self, LevelObjects={}):
@@ -117,7 +116,6 @@ class Level(PrettySerializable):
                 else:
                     LevelObjects[group] = {item.getname() : item}
         return Level(LevelObjects)
-
 
 class CommandHandler:
     def __init__(self, command_fx_pairs, error_msg="", exceptions=False, separator = " ") -> None:
@@ -156,5 +154,5 @@ class FxParserPair:
 
     __call__ = parse
 
-game = Game.fromconfig("level.txt")
-input("press enter to quit")
+def main(args=sys.argv):
+    Game.fromconfig("level.txt")
