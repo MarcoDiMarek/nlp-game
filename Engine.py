@@ -104,7 +104,7 @@ class Level(PrettySerializable):
         lines = Level.ReadIgnore(full_file_path, sections=["#CommandBindings"])
         LevelObjects = dict()
         for line in lines:
-            item = handler.parse(line)
+            item = handler.parse(line, LevelObjects)
             if item is not None:
                 try:
                     item.level = self
@@ -131,10 +131,10 @@ class CommandHandler:
         self.error_msg = error_msg
         self.exceptions = exceptions
     
-    def parse(self, command_string):
+    def parse(self, command_string, level_objs={}):
         args = command_string.strip().split(self.separator)
         try:
-            return self.bindings[args[0]](args[1:])
+            return self.bindings[args[0]](args[1:], level_objs)
         except KeyError as error:
             if self.error_msg:
                 print(self.error_msg)
@@ -149,10 +149,12 @@ class FxParserPair:
         self.handler = function
         self.parser = argparse_creator_fx()
 
-    def parse(self, args):
-        return self.handler(args, self.parser)
+    def parse(self, args, level_objs):
+        return self.handler(args, self.parser, level_objs)
 
     __call__ = parse
 
-def main(args=sys.argv):
-    Game.fromconfig("level.txt")
+gm = Game.fromconfig("level.txt")
+print("shit")
+# def main(args=sys.argv):
+#     Game.fromconfig("level.txt")

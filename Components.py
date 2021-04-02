@@ -2,7 +2,7 @@ from abc import abstractmethod, ABCMeta
 
 class GameObject:
     gameInstance = None
-    def __init__(self, name=None, level=None) -> None:
+    def __init__(self, name=None, level=None, metaclass=ABCMeta) -> None:
         self._name = name
         self.level = level
 
@@ -17,8 +17,8 @@ class GameObject:
         """Prepare object right before the first run of the Update loop.
         Now objects know they can access each other since all have been loaded."""
         self.level = level
-        print(f"{self._name} started")
-        print(f"FINISHED {self._name}")
+        # print(f"{self._name} started")
+        # print(f"FINISHED {self._name}")
         return True
 
     @staticmethod
@@ -83,11 +83,13 @@ class PlayerController(Controller):
             try:
                 return self.controls_functions[args[0]](args) is True
             except KeyError:
-                print("You typed something we did not understand. Type commands for help.")
+                print("You typed something we did not understand. Type \"commands\" for help.")
                 return False
         return False
 
     def go(self, args=[]):
+        for actor in self.controlled:
+            pass
         pass
     
     def take(self, args=[]):
@@ -110,3 +112,12 @@ class PlayerController(Controller):
 
     def quit(self, args=[]):
         pass
+
+class Player(GameObject):
+    def __init__(self, name="player", controller=None, location = None) -> None:
+        super().__init__(name)
+        self.controller = controller
+        self.inventory = []
+        self.location = location
+        if self.controller:
+            controller.possess(self)
