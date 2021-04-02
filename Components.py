@@ -1,29 +1,24 @@
-import asyncio
-import pprint
-from abc import abstractmethod
-import random
-from sys import modules
-from typing import Generator
+from abc import abstractmethod, ABCMeta
 
 class GameObject:
     gameInstance = None
     def __init__(self, name=None, level=None) -> None:
-        self.name = name
+        self._name = name
         self.level = level
 
     def getname(self) -> str:
-        return self.name or str(id(self))
+        return self._name or str(id(self))
 
     def rename(self, name):
-        self.name = name
-        # call an event to notify subscribers (if implemented)
+        self._name = name
+        # call an "event" to notify subscribers (if implemented)
 
     def BeginPlay(self, level) -> bool:
         """Prepare object right before the first run of the Update loop.
         Now objects know they can access each other since all have been loaded."""
         self.level = level
-        print(f"{self.name} started")
-        print(f"FINISHED {self.name}")
+        print(f"{self._name} started")
+        print(f"FINISHED {self._name}")
         return True
 
     @staticmethod
@@ -35,7 +30,7 @@ class GameObject:
     def fromconfig(self, args, parser) -> None:
         return None
 
-class Controller(GameObject):
+class Controller(GameObject, metaclass=ABCMeta):
     """A class to be inherited by AI controllers or Player Controllers."""
     def __init__(self, name, *to_possess) -> None:
         """Controller name, object(s) to possess."""
@@ -69,6 +64,10 @@ class Controller(GameObject):
                 yield False
         yield False
 
+    @abstractmethod
+    def update(self, args) -> bool:
+        return False
+
 class PlayerController(Controller):
     def __init__(self, name, controls_functions={}, *to_possess) -> None:
         super().__init__(name, *to_possess)
@@ -79,35 +78,35 @@ class PlayerController(Controller):
         ctrl_fx = {control:getattr(self, fx_name) for control, fx_name in controls_functions.items()}
         return PlayerController(name, ctrl_fx, *to_possess)
 
-    def go(self):
+    def update(self, args=[]) -> bool:
+        if args:
+            try:
+                return self.controls_functions[args[0]](args) is True
+            except KeyError:
+                print("You typed something we did not understand. Type commands for help.")
+                return False
+        return False
+
+    def go(self, args=[]):
         pass
     
-    def take(self):
+    def take(self, args=[]):
         pass
 
-    def release(self):
+    def release(self, args=[]):
         pass
 
-    def show(self):
+    def show(self, args=[]):
         pass
 
-    def open(self):
+    def open(self, args=[]):
         pass
 
-    def commands(self):
+    def commands(self, args=[]):
         pass
 
-    def holding(self):
+    def holding(self, args=[]):
         pass
 
-    def quit(self):
+    def quit(self, args=[]):
         pass
-
-# #EXAMPLE
-# class someobj():
-#     def __init__(self, controller=None) -> None:
-#         self.controller=controller
-#         if self.controller:
-#             controller.possess(self)
-# pl = someobj()
-# pc = PlayerController.fromstring("Nice controller", {"m":"move"}, pl)
