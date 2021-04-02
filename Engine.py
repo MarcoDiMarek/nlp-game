@@ -62,8 +62,11 @@ class Game(PrettySerializable):
         GameObject.gameInstance = self
         controls = dict([line.split() for line 
                    in Game.FindSection(full_file_path, section="#Controls")])
-        controller = PlayerController.fromstring("default_controller", controls, Player())
+        start_loc = list(Game.FindSection(full_file_path, section="#Start position"))[0].split(" ")[1]
+        player = Player(location=start_loc)
+        controller = PlayerController.fromstring("default_controller", controls, player)
         level = Level.LoadLevel(full_file_path)
+        level.LevelObjects["players"]={player.getname():player}
         return Game(level, controller)
 
     def BeginPlay(self) -> bool:
@@ -154,7 +157,7 @@ class FxParserPair:
 
     __call__ = parse
 
-gm = Game.fromconfig("level.txt")
-print("shit")
-# def main(args=sys.argv):
-#     Game.fromconfig("level.txt")
+def main(args=sys.argv):
+    Game.fromconfig("level.txt")
+
+main()

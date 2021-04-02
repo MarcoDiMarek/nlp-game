@@ -2,6 +2,10 @@
 go go
 take take
 release release
+move move
+unlock unlock
+drink drink
+turn turn
 open open
 show show
 commands commands
@@ -12,18 +16,22 @@ room Room
 door Door
 item Item
 #Rooms
-room Hall
+room Freezer
 room Kitchen
-room Storage
-room Bedroom
+room LivingRoom
+room Office
+room Hall
+room Basement
 #Doors
-door N-S OPEN Hall Bedroom
-door N-S CLOSED Storage Kitchen
-door E-W LOCKED Hall Storage --keys key
-door E-W OPEN Bedroom Kitchen
+door E-W LOCKED Freezer Kitchen --name ImportantDoor
+door S-N OPEN Kitchen LivingRoom
+door E-W OPEN Office LivingRoom
+door W-E OPEN Hall LivingRoom
+door S-N LOCKED Hall Basement --keys key_basement
 #Items
-item box Storage STATIONARY
-item hour_glass Kitchen MOVE
-item key Bedroom USE --action unlock
+item table Kitchen MOVE --action move 
+item fuse_box Basement STATIONARY --action turn --then 'Cool. This must have fixed the issue. Game over.'
+item key_basement Office USE --action use
+item milk Kitchen USE --hidden --action drink --then 'Mmmh so tasty.'
 #Start position
-start Hall
+start Kitchen

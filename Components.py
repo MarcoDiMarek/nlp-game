@@ -2,9 +2,10 @@ from abc import abstractmethod, ABCMeta
 
 class GameObject:
     gameInstance = None
-    def __init__(self, name=None, level=None, metaclass=ABCMeta) -> None:
+    def __init__(self, name=None, level=None, visible=True, metaclass=ABCMeta) -> None:
         self._name = name
         self.level = level
+        self.visible = visible
 
     def getname(self) -> str:
         return self._name or str(id(self))
@@ -14,7 +15,7 @@ class GameObject:
         # call an "event" to notify subscribers (if implemented)
 
     def BeginPlay(self, level) -> bool:
-        """Prepare object right before the first run of the Update loop.
+        """Allows to prepare object right before the first run of the Update loop.
         Now objects know they can access each other since all have been loaded."""
         self.level = level
         # print(f"{self._name} started")
@@ -81,43 +82,172 @@ class PlayerController(Controller):
     def update(self, args=[]) -> bool:
         if args:
             try:
-                return self.controls_functions[args[0]](args) is True
+                return self.controls_functions[args[0]](self, args) is True
             except KeyError:
                 print("You typed something we did not understand. Type \"commands\" for help.")
                 return False
         return False
 
     def go(self, args=[]):
+        try:
+            direction = args[1]
+        except IndexError:
+            print("You need to provide direction in which to go.")
+            return
         for actor in self.controlled:
-            pass
-        pass
+            room_name = actor.location
+            room = actor.level.LevelObjects["Room"][room_name]
+            try:
+                door = room.doors[direction]
+            except KeyError:
+                print("No door in this direction.")
+                continue
+            if not door.is_open():
+                print("The door is not open!")
+                return
+            other_room = [room for room in door.rooms if room != room_name][0]
+            actor.location=other_room
+            self.show()
     
     def take(self, args=[]):
-        pass
+        actor = next(iter(self.controlled))
+        try:
+            name = args[1]
+        except IndexError:
+            print("No item provided.")
+            return
+        room = actor.level.LevelObjects["Room"][actor.location]
+        items = room.items
+        item = room.GetItem(name)
+        if item is not None and item.visible:
+            if item.action not in ["use", "drink"]:
+                print("Cannot take this with me.")
+                return
+            actor.inventory.append(item)
+            item.visible = False
+            items.remove(item)
+            print("You took the", item.getname())
+        else:
+            print("Item was not found in the room.")
+
+    def move(self, args=[]):
+        actor = next(iter(self.controlled))
+        try:
+            name = args[1]
+        except IndexError:
+            print("No item provided.")
+            return
+        room = actor.level.LevelObjects["Room"][actor.location]
+        item = room.GetItem(name)
+        if item:
+            item.move()
+        else:
+            print("Item was not found in the room.")
 
     def release(self, args=[]):
-        pass
+        actor = next(iter(self.controlled))
+        try:
+            name = args[1]
+        except IndexError:
+            print("No item provided.")
+            return
+        room = actor.level.LevelObjects["Room"][actor.location]
+        item = actor.find_in_inventory(name)
+        if item:
+            room.items.add(item)
+            actor.inventory.remove(item)
+            item.visible = True
+            print("You released the", item.getname(), "in the",actor.location)
+        else:
+            print("Item was not found in the inventory.")
+
+    def turn(self, args=[]):
+        actor = next(iter(self.controlled))
+        try:
+            name = args[1]
+        except IndexError:
+            print("No item provided.")
+            return
+        item = actor.find_in_inventory(name)
+        if item.action == "turn":
+            print(item.reaction)
+        else:
+            print("Cannot turn this.")
 
     def show(self, args=[]):
-        pass
+        for actor in self.controlled:
+            room_name = actor.location
+            room = actor.level.LevelObjects["Room"][room_name]
+            print(f"You are in the room {room_name}.", 
+                  f"There are following items here: {', '.join([item.getname() for item in room.items if item.visible])}",
+                  f"and {len(room.doors)} doors: {', '.join(room.doors.keys())}", sep="\n")
 
     def open(self, args=[]):
-        pass
+        try:
+            direction = args[1]
+        except IndexError:
+            print("You need to provide direction in which a door is to be open.")
+            return
+        for actor in self.controlled:
+            room_name = actor.location
+            room = actor.level.LevelObjects["Room"][room_name]
+            try:
+                door = room.doors[direction]
+            except KeyError:
+                print("No door in given direction.")
+                return
+            door.open()
+
+    def unlock(self, args=[]):
+        try:
+            direction = args[1]
+        except IndexError:
+            print("You need to provide direction in which a door is to be unlocked.")
+            return
+        for actor in self.controlled:
+            room_name = actor.location
+            room = actor.level.LevelObjects["Room"][room_name]
+            try:
+                door = room.doors[direction]
+            except KeyError:
+                print("No door in given direction.")
+                return
+            door.unlock(actor)
+
+    def drink(self, args=[]):
+        try:
+            for actor in self.controlled:
+                item = actor.find_in_inventory(args[1])
+                if item.action == "drink":
+                    print(item.reaction)
+                else:
+                    print("Cannot drink this.")
+        except:
+            print("This item is not in your inventory yet.")
 
     def commands(self, args=[]):
-        pass
+        print(f"Possible commands are: {', '.join(self.controls_functions.keys())}")
 
     def holding(self, args=[]):
+        items = [item.getname() for actor in self.controlled for item in actor.inventory]
+        print(f"Items in your inventory: {', '.join(items) if items else 'nothing'}")
         pass
 
     def quit(self, args=[]):
         pass
 
 class Player(GameObject):
-    def __init__(self, name="player", controller=None, location = None) -> None:
-        super().__init__(name)
+    def __init__(self, name="player", level=None, controller=None, location = None) -> None:
+        super().__init__(name, level=level)
         self.controller = controller
         self.inventory = []
         self.location = location
         if self.controller:
             controller.possess(self)
+
+    def find_in_inventory(self, name):
+        for item in self.inventory:
+            if item.getname() == name:
+                return item
+        print(f"Not found match {item.getname()}, {name}")
+        return None
